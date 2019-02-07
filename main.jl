@@ -20,8 +20,12 @@ begin
 	addConstraint(spc, X::Dof);
 	addConstraint(spc, Y::Dof);
 	addConstraint(spc, Z::Dof);
+	addNode(spc, n2);
+	addNode(spc, n3);
+	addNode(spc, n4);
 
 	local load = Load(1.0, 1.0, 1.0);
+	addNode(load, n1);
 
 	local model = Model();
 	addElement(model, e1);
@@ -29,6 +33,5 @@ begin
 	addElement(model, e3);
 	addConstraint(model, spc);
 	addLoad(model, load);
-	solve(model);
-
+	@timev solve(model);
 end

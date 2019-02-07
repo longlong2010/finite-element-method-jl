@@ -36,6 +36,7 @@ function solve(self::Model)
 	ndof = getDofNum(self);
 	#K = Dict{Tuple{Int32, Int32}, Float64}();
 	K = Matrix{Float64}(undef, ndof, ndof);
+	R = Vector{Float64}(undef, ndof);
 	k::Int32 = 0;
 	for element in self.elements
 		l::Int32 = 1;
@@ -48,9 +49,7 @@ function solve(self::Model)
 			end
 		end
 		Ke = getStiffMatrix(element);
-		
 		(n, ) = size(Ke);
-
 		for i = 1 : n
 			mi = m[i];
 			for j = 1 : n
@@ -65,21 +64,33 @@ function solve(self::Model)
 		end
 	end
 
-	R = Vector{Float64}(undef, ndof);
 	for load in self.loads
-		for d in instances(Dof)
-			load.values[d];
-		end
-	end
-
-	for constraint in self.constraints
-		for d in instances(Dof)
-			if haskey(constraint.values, d)
-				constraint.values[d];
+		for node in load.nodes
+			k = (findfirst(isequal(node), self.nodes) - 1) * getDofNum(node);
+			dofn::Int32 = 1;
+			for d in instances(Dof)
+				v = load.values[d];
+				R[k + dofn] = v;
+				dofn += 1;
 			end
 		end
 	end
 
+	for constraint in self.constraints
+		for node in constraint.nodes
+			k = (findfirst(isequal(node), self.nodes) - 1) * getDofNum(node);
+			dofn::Int32 = 1;
+			for d in instances(Dof)
+				if haskey(constraint.values, d)
+					v = constraint.values[d];
+					K[k + dofn, k + dofn] += 1e20;
+					R[k + dofn] = v * K[k + dofn, k + dofn];
+				end
+				dofn += 1;
+			end
+		end
+	end
+	display(K \ R);
 end
 
 function Model()
