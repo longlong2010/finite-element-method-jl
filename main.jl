@@ -4,7 +4,7 @@ include("load.jl");
 include("model.jl");
 push!(LOAD_PATH, ".");
 begin
-	local m = Material(1, 1, 1);
+	local m = Material(1, 0.3, 1);
 	local property = Property1D(m, 1);
 
 	local n1 = Node(0.0, 0.0, 0.0);
@@ -34,4 +34,10 @@ begin
 	addConstraint(model, spc);
 	addLoad(model, load);
 	@timev solve(model);
+
+
+	local p2 = Property3D(m);
+	local e = Tet4Element([n1, n2, n3, n4], p2);
+	display(getStiffMatrix(e));
+	println();
 end

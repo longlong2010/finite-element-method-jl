@@ -34,9 +34,8 @@ end
 
 function solve(self::Model)
 	ndof = getDofNum(self);
-	#K = Dict{Tuple{Int32, Int32}, Float64}();
-	K = Matrix{Float64}(undef, ndof, ndof);
-	R = Vector{Float64}(undef, ndof);
+	K = zeros(Float64, ndof, ndof);
+	R = zeros(Float64, ndof, 1);
 	k::Int32 = 0;
 	for element in self.elements
 		l::Int32 = 1;
@@ -91,6 +90,7 @@ function solve(self::Model)
 		end
 	end
 	display(K \ R);
+	println();
 end
 
 function Model()

@@ -30,11 +30,13 @@ abstract type TetElement <: Element3D end;
 
 mutable struct Tet4Element <: TetElement
 	nodes::Array{Node};
+	points::Array{Array{Float64}};
 	property::Property3D;
 end
 
 mutable struct Tet10Element <: TetElement
 	nodes::Array{Node};
+	points::Array{Array{Float64}};
 	property::Property3D;
 end
 
@@ -66,12 +68,12 @@ function getStressStrainMatrix(self::Truss)
 	return self.property.M.E;
 end
 
-function getStrainMatrix(self::Truss, p)
+function getStrainMatrix(self::Truss, p::Array{Float64})
 	L = getLength(self);
 	Der = getShapeDerMatrix(self, p);
 	ndof = getDofNum(self);
 	nnode = getNodeNum(self);
-	B = Matrix{Float64}(undef, 1, ndof);
+	B = zeros(Float64, 1, ndof);
 	for i = 1 : nnode
 		B[1, i * 3 - 2] = Der[1, i] * 2 / L;
 	end
@@ -81,7 +83,7 @@ end
 function getStiffMatrix(self::Truss)
 	nnode = getNodeNum(self);
 	ndof = getDofNum(self);
-	Ke = Matrix{Float64}(undef, ndof, ndof);
+	Ke = zeros(Float64, ndof, ndof);
 	D = getStressStrainMatrix(self);
 	A = self.property.A;
 	n1 = self.nodes[1];
@@ -104,19 +106,189 @@ function Truss2(nodes::Array{Node}, property::Property1D)
 	return Truss2(nodes, [[0, 1]], property);
 end
 
-function getShapeMatrix(self::Truss2, p)
+function getShapeMatrix(self::Truss2, p::Array{Float64})
 	(xi, w) = p;
 	ndof = getDofNum(self);
-	N = Matrix{Float64}(undef, 3, ndof);
+	N = zeros(Float64, 3, ndof);
 	N[1, 1] = (1 - xi) / 2;
 	N[1, 4] = (1 + xi) / 2;
 	return N;
 end
 
-function getShapeDerMatrix(self::Truss2, p)
+function getShapeDerMatrix(self::Truss2, p::Array{Float64})
 	nnode = getNodeNum(self);
-	Der = Matrix{Float64}(undef, 1, nnode);
+	Der = zeros(Float64, 1, nnode);
 	Der[1, 1] = -0.5;
 	Der[1, 2] = 0.5;
+	return Der;
+end
+
+function getCoord(self::Element3D)
+	nnode = getNodeNum(self);
+	coord = zeros(Float64, nnode, 3);
+	i::Int32 = 1;
+	for node in self.nodes
+		coord[i, :] = Array{Float64}([node.x, node.y, node.z]);
+		i += 1;
+	end
+	return coord;
+end
+
+function getJacobi(self::Element3D, p::Array{Float64})
+	der = getShapeDerMatrix(self, p);
+	coord = getCoord(self);
+	display(coord);
+	println();
+	return der * coord;
+end
+
+function getStrainMatrix(self::Element3D, p::Array{Float64})
+	der = getShapeDerMatrix(self, p);
+	J = getJacobi(self, p);
+	Der = J^-1 * der;
+	ndof = getDofNum(self);
+	nnode = getNodeNum(self);
+	B = zeros(Float64, 6, ndof);
+	for i = 1 : nnode
+		k = (i - 1) * 3 + 1;
+		for j = 1 : 3
+			B[j, (i - 1) * 3 + j] = Der[j, i];
+		end
+		B[4, k] = Der[2, i];
+		B[4, k + 1] = Der[1, i];
+
+		B[5, k + 1] = Der[3, i];
+		B[5, k + 2] = Der[2, i];
+
+		B[6, k] = Der[3, i];
+		B[6, k + 2] = Der[1, i];
+	end
+	return B;
+end
+
+function getStiffMatrix(self::Element3D)
+	ndof = getDofNum(self);
+	Ke = zeros(Float64, ndof, ndof);
+	D = getStressStrainMatrix(self);
+	for p in self.points
+		B = getStrainMatrix(self, p);
+		J = getJacobi(self, p);
+		Ke += B' * D * B * abs(det(J)) * last(p);
+	end
+	return Ke;
+end
+
+function getStressStrainMatrix(self::Element3D)
+	D = zeros(Float64, 6, 6);
+	E = self.property.M.E;
+	nu = self.property.M.nu;
+	D[1, 1] = 1 - nu;
+	D[1, 2] = nu;
+	D[1, 3] = nu;
+
+	D[2, 1] = nu;
+	D[2, 2] = 1 - nu;
+	D[2, 3] = nu;
+
+	D[3, 1] = nu;
+	D[3, 2] = nu;
+	D[3, 3] = 1 - nu;
+
+	D[4, 4] = (1 - 2 * nu) / 2;
+	D[5, 5] = (1 - 2 * nu) / 2;
+	D[6, 6] = (1 - 2 * nu) / 2;
+
+	D *= E / ((1 + nu) * (1 - 2 * nu));
+end
+
+function Tet4Element(nodes::Array{Node}, property::Property3D)
+	return Tet4Element(nodes, [[0.25, 0.25, 0.25, 0.25, 1 / 6]], property);
+end
+
+function getShapeMatrix(self::Tet4Element, p::Array{Float64})
+	(l1, l2, l3, l4, w) = p;
+	ndof = getDofNum(self);
+	nnode = getNodeNum(self);
+	N = zeros(Float64, 3, ndof);
+	for i = 1 : nnode
+		for j = 1 : nnode
+			N[j, (i - 1) * 3 + j] = p[i];
+		end
+	end
+end
+
+function getShapeDerMatrix(self::Tet4Element, p::Array{Float64})
+	nnode = getNodeNum(self);
+	der = zeros(Float64, 3, nnode);
+	der[1, 1] = 1;
+	der[2, 2] = 1;
+	der[3, 3] = 1;
+	der[1, 4] = -1;
+	der[2, 4] = -1;
+	der[3, 4] = -1;
+	return der;
+end
+
+function Tet10Element(nodes::Array{Node}, property::Property3D)
+	return Tet10Element(nodes, [
+		[alpha, beta, beta, beta, 1 / 24],
+		[beta, alpha, beta, beta, 1 / 24],
+		[beta, beta, alpha, beta, 1 / 24],
+		[beta, beta, beta, alpha, 1 / 24]
+	], property);
+end
+
+function getShapeMatrix(self::Tet10Element, p::Array{Float64})
+	(l1, l2, l3, l4, w) = p;
+	nnode = getNodeNum(self);
+	ndof = getDofNum(self);
+	Fun = zeros(Float64, nnode);
+	Fun[1] = l1 * (2 * l1 - 1);
+	Fun[2] = l2 * (2 * l2 - 1);
+	Fun[3] = l3 * (2 * l3 - 1);
+	Fun[4] = l4 * (2 * l4 - 1);
+	Fun[5] = 4 * l1 * l2;
+	Fun[6] = 4 * l2 * l3;
+	Fun[7] = 4 * l1 * l3;
+	Fun[8] = 4 * l1 * l4;
+	Fun[9] = 4 * l2 * l4;
+	Fun[10] = 4 * l3 * l4;
+	N = zeros(Float64, 3, ndof);
+	for i = 1 : nnode
+		for j = 1 : 3
+			N[j][(i - 1) * 3 + j] = Fun[i];
+		end
+	end
+end
+
+function getShapeDerMatrix(self::Tet10Element, p::Array{Float64})
+	(l1, l2, l3, l4, w) = p;
+	nnode = getNodeNum(self);
+	Der = zeros(Float64, 3, nnode);
+	for i = 1 : 3
+		Der[i][i] = 4 * p[i] - 1;
+		Der[i][4] = 1 - 4 * l4;
+	end
+
+	Der[1, 5] = 4 * l2;
+	Der[2, 5] = 4 * l1;
+
+	Der[2, 6] = 4 * l3;
+	Der[3, 6] = 4 * l2;
+
+	Der[1, 7] = 4 * l3;
+	Der[3, 7] = 4 * l1;
+
+	Der[1, 8] = 4 * (l4 - l1);
+	Der[2, 8] = -4 * l1;
+	Der[3, 8] = -4 * l1;
+
+	Der[1, 9] = -4 * l2;
+	Der[2, 9] = 4 * (l4 - l2);
+	Der[3, 9] = -4 * l2;
+
+	Der[1, 10] = -4 * l3;
+	Der[2, 10] = -4 * l3;
+	Der[3, 10] = 4 * (l4 - l3);
 	return Der;
 end
