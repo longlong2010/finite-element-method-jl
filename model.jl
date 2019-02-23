@@ -36,28 +36,28 @@ function solve(self::Model)
 	ndof = getDofNum(self);
 	K = zeros(Float64, ndof, ndof);
 	R = zeros(Float64, ndof, 1);
-	k::Int32 = 0;
+	idof::Int32 = 1;
+	mnode::Dict{Node, Int32} = Dict{Node, Int32}();
+	for node in self.nodes
+		mnode[node] = idof;
+		idof += getDofNum(node);
+	end
 	for element in self.elements
-		l::Int32 = 1;
-		m::Dict{Int32, Int32} = Dict{Int32, Int32}();
+		dofn::Int32 = 1;
+		minode::Dict{Int32, Int32} = Dict{Int32, Int32}();
 		for node in element.nodes
-			k = (findfirst(isequal(node), self.nodes) - 1) * getDofNum(node);
+			idof = mnode[node];
 			for i = 1 : getDofNum(node)
-				m[l] = k + i;
-				l += 1;
+				minode[dofn] = idof + i - 1;
+				dofn += 1;
 			end
 		end
 		Ke = getStiffMatrix(element);
-		(n, ) = size(Ke);
-		for i = 1 : n
-			mi = m[i];
+		(m, n) = size(Ke);
+		for i = 1 : m
+			mi = minode[i];
 			for j = 1 : n
-				mj = m[j];
-				#if haskey(K, (mi, mj))
-				#	K[(mi, mj)] += Ke[i, j];
-				#else
-				#	K[(mi, mj)] = Ke[i, j];
-				#end
+				mj = minode[j];
 				K[mi, mj] += Ke[i, j];
 			end
 		end
@@ -65,11 +65,11 @@ function solve(self::Model)
 
 	for load in self.loads
 		for node in load.nodes
-			k = (findfirst(isequal(node), self.nodes) - 1) * getDofNum(node);
+			idof = mnode[node];
 			dofn::Int32 = 1;
 			for d in instances(Dof)
 				v = load.values[d];
-				R[k + dofn] = v;
+				R[idof + dofn - 1] = v;
 				dofn += 1;
 			end
 		end
@@ -77,13 +77,13 @@ function solve(self::Model)
 
 	for constraint in self.constraints
 		for node in constraint.nodes
-			k = (findfirst(isequal(node), self.nodes) - 1) * getDofNum(node);
+			idof = mnode[node];
 			dofn::Int32 = 1;
 			for d in instances(Dof)
 				if haskey(constraint.values, d)
 					v = constraint.values[d];
-					K[k + dofn, k + dofn] += 1e20;
-					R[k + dofn] = v * K[k + dofn, k + dofn];
+					K[idof + dofn - 1, idof + dofn - 1] += 1e20;
+					R[idof + dofn - 1] = v * K[idof + dofn - 1, idof + dofn - 1];
 				end
 				dofn += 1;
 			end
