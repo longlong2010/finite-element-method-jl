@@ -205,6 +205,26 @@ function Tet4Element(nodes::Array{Node}, property::Property3D)
 	return Tet4Element(nodes, [[0.25, 0.25, 0.25, 0.25, 1 / 6]], property);
 end
 
+function getTriangleArea(nodes::Array{Node})
+	coord = Matrix{Float64}(undef, 3, 3);
+	k::Int32 = 1;
+	for node in nodes
+		coord[k, :] = [node.x, node.y, node.z];
+		k += 1;
+	end
+	A::Float64 = 0.0;
+	M = ones(Float64, 3, 3);
+	for i = 1 : 3
+		j = i % 3 + 1;
+		for k = 1 : 3
+			M[1, k] = coord[k, i];
+			M[2, k] = coord[k, j];
+		end
+		A += det(M)^2;
+	end
+	return 0.5 * sqrt(A);
+end
+
 function getShapeMatrix(self::Tet4Element, p::Array{Float64})
 	(l1, l2, l3, l4, w) = p;
 	ndof = getDofNum(self);

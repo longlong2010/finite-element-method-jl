@@ -40,4 +40,6 @@ begin
 	local e = Tet4Element([n1, n2, n3, n4], p2);
 	display(getStiffMatrix(e));
 	println();
+
+	println(getTriangleArea([n1, n2, n3]));
 end
