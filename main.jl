@@ -2,6 +2,7 @@ include("property.jl");
 include("geometry.jl");
 include("load.jl");
 include("model.jl");
+include("parser.jl");
 push!(LOAD_PATH, ".");
 begin
 	local m = Material(1, 0.3, 1);
@@ -42,4 +43,7 @@ begin
 	println();
 
 	println(getTriangleArea([n1, n2, n3]));
+	parser = NastranParser();
+	parse(parser, "A4.bdf");
+	println(parser);
 end
