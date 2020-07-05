@@ -22,12 +22,18 @@ end
 function parse(self::NastranParser, file::String)
 	data = [];
 	for line in eachline(file)
-		if line[1] == '$'
+		local len = length(line);
+		if len < 8
 			continue;
 		end
-		row = split(line, r"\s+");
+		local n = len ÷ 8 + 1;
+		local row = [];
+		for i = 1 : n - 1
+			push!(row, String(strip(line[(i - 1) * 8 + 1 : i * 8])));
+		end
+		push!(row, String(strip(line[(n - 1) * 8 + 1 : len])));
 		if row[1] == ""
-			append!(data, row[2:length(row)]);		
+			append!(data, row[2:length(row)]);
 		else
 			if length(data) > 0
 				if data[1] == "MAT1"
@@ -37,7 +43,7 @@ function parse(self::NastranParser, file::String)
 					card = BDFCard(data[1], parse(Int32, String(data[2])), data[3:length(data)]);
 					self.properties[card.id] = card;
 				elseif data[1] == "GRID"
-					card = BDFCard(data[1], parse(Int32, String(data[2])), data[3:length(data)]);
+					card = BDFCard(data[1], parse(Int32, String(data[2])), data[4:length(data)]);
 					self.nodes[card.id] = card;
 				elseif data[1] == "CTETRA"
 					card = BDFCard(data[1], parse(Int32, String(data[2])), data[3:length(data)]);
@@ -57,14 +63,13 @@ function parse(self::NastranParser, file::String)
 	for (id, card) in self.materials
 		if card.name == "MAT1"
 			local E = parse(Float64, card.data[1]);
-			local mu = parse(Float64, card.data[2]);
-			local rho = parse(Float64, replace(card.data[3], "-" => "e-"));
+			local mu = parse(Float64, card.data[3]);
+			local rho = parse(Float64, replace(card.data[4], "-" => "e-"));
 			materials[id] = Material(E, mu, rho);
 		end
 	end
 	nodes = Dict{Int32, Node}();
 	for (id, card) in self.nodes
-		println(card);
 		local x = parse(Float64, card.data[1]);
 		local y = parse(Float64, card.data[2]);
 		local z = parse(Float64, card.data[3]);
