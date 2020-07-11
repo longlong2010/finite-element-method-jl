@@ -76,11 +76,37 @@ function parse(self::NastranParser, file::String)
 		node = Node(x, y ,z);
 		nodes[id] = node;
 	end
+	properties = Dict{Int32, Property3D}();
+	for (id, card) in self.properties
+		local mid = parse(Int32, card.data[1]);
+		material = materials[mid];
+		property = Property3D(material);
+		properties[id] = property;
+	end
+	model = Model();
 	for (id, card) in self.elements
 		if card.name == "CTETRA"
+			local _nodes::Array{Node} = [];
 			for i = 2 : 11
-				id = parse(Int32, card.data[i]);
+				local nid = parse(Int32, card.data[i]);
+				node = nodes[nid];
+				push!(_nodes, node);
 			end
+			local pid = parse(Int32, card.data[1])
+			property = properties[pid];
+			element = Tet10Element(_nodes, property);
+			addElement(model, element);
 		end
 	end
+	for (id, card) in self.constraints
+		if card.name == "SPC1"
+		
+		end
+	end
+	for (id, card) in self.loads
+		if card.name == "PLOAD4"
+			println(card);
+		end
+	end
+	return model;
 end

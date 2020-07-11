@@ -11,11 +11,13 @@ struct Node
 	y::Float64;
 	z::Float64;
 	dofs::Set{Dof};
+	vals::Dict{Dof, Float64};
 end
 
 function Node(x::Float64, y::Float64, z::Float64)
 	dofs = Set{Dof}([X::Dof, Y::Dof, Z::Dof]);
-	return Node(x, y, z, dofs);
+	vals = Dict{Dof, Float64}(X::Dof => 0.0, Y::Dof => 0.0, Z::Dof => 0.0);
+	return Node(x, y, z, dofs, vals);
 end
 
 function getDofNum(self::Node)
@@ -250,6 +252,8 @@ function getShapeDerMatrix(self::Tet4Element, p::Array{Float64})
 end
 
 function Tet10Element(nodes::Array{Node}, property::Property3D)
+	alpha = 0.58541020;
+	beta = 0.13819660;
 	return Tet10Element(nodes, [
 		[alpha, beta, beta, beta, 1 / 24],
 		[beta, alpha, beta, beta, 1 / 24],

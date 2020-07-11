@@ -89,7 +89,8 @@ function solve(self::Model)
 			end
 		end
 	end
-	display(K \ R);
+	local result = K \ R;
+	display(result)
 	println();
 end
 
