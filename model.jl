@@ -1,3 +1,5 @@
+using SparseArrays;
+
 mutable struct Model
 	nodes::Array{Node};
 	elements::Array{Element};
@@ -42,6 +44,7 @@ function solve(self::Model)
 		mnode[node] = idof;
 		idof += getDofNum(node);
 	end
+	
 	for element in self.elements
 		dofn::Int32 = 1;
 		minode::Dict{Int32, Int32} = Dict{Int32, Int32}();
@@ -89,8 +92,9 @@ function solve(self::Model)
 			end
 		end
 	end
+	K = sparse(K);
 	local result = K \ R;
-	display(result)
+	display(result);
 	println();
 end
 

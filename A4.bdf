@@ -4,23 +4,23 @@ $ Direct Text Input for Nastran System Cell Section
 $ Direct Text Input for File Management Section
 $ Direct Text Input for Executive Control
 $ Linear Static Analysis, Database
-SOL 101
-CEND
+$SOL 101
+$CEND
 $ Direct Text Input for Global Case Control Data
-TITLE = MSC.Nastran job created on 04-Sep-18 at 22:30:39
-ECHO = NONE
-SUBCASE 1
+$TITLE = MSC.Nastran job created on 04-Sep-18 at 22:30:39
+$ECHO = NONE
+$SUBCASE 1
 $ Subcase name : Default
-   SUBTITLE=Default
-   SPC = 2
-   LOAD = 2
-   DISPLACEMENT(SORT1,REAL)=ALL
-   SPCFORCES(SORT1,REAL)=ALL
-   STRESS(SORT1,REAL,VONMISES,BILIN)=ALL
-BEGIN BULK
+$   SUBTITLE=Default
+$   SPC = 2
+$   LOAD = 2
+$   DISPLACEMENT(SORT1,REAL)=ALL
+$   SPCFORCES(SORT1,REAL)=ALL
+$   STRESS(SORT1,REAL,VONMISES,BILIN)=ALL
+$BEGIN BULK
 $ Direct Text Input for Bulk Data
-PARAM    POST    0
-PARAM   PRTMAXIM YES
+$PARAM    POST    0
+$PARAM   PRTMAXIM YES
 $ Elements and Element Properties for region : P1
 PSOLID   1       1       0
 $ Pset: "P1" will be imported as: "psolid.1"

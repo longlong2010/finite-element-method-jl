@@ -139,8 +139,6 @@ end
 function getJacobi(self::Element3D, p::Array{Float64})
 	der = getShapeDerMatrix(self, p);
 	coord = getCoord(self);
-	display(coord);
-	println();
 	return der * coord;
 end
 
@@ -290,8 +288,8 @@ function getShapeDerMatrix(self::Tet10Element, p::Array{Float64})
 	nnode = getNodeNum(self);
 	Der = zeros(Float64, 3, nnode);
 	for i = 1 : 3
-		Der[i][i] = 4 * p[i] - 1;
-		Der[i][4] = 1 - 4 * l4;
+		Der[i, i] = 4 * p[i] - 1;
+		Der[i, 4] = 1 - 4 * l4;
 	end
 
 	Der[1, 5] = 4 * l2;
