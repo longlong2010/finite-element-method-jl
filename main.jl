@@ -44,6 +44,6 @@ begin
 
 	println(getTriangleArea([n1, n2, n3]));
 	parser = NastranParser();
-	model = parse(parser, "A4.bdf");
-	solve(model)
+	@timev model = parse(parser, "A4.bdf");
+	@timev solve(model)
 end

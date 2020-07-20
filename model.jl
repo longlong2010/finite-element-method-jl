@@ -36,7 +36,6 @@ end
 
 function solve(self::Model)
 	ndof = getDofNum(self);
-	K = zeros(Float64, ndof, ndof);
 	R = zeros(Float64, ndof, 1);
 	idof::Int32 = 1;
 	mnode::Dict{Node, Int32} = Dict{Node, Int32}();
@@ -44,7 +43,11 @@ function solve(self::Model)
 		mnode[node] = idof;
 		idof += getDofNum(node);
 	end
-	
+
+	I = Array{Int64}([]);
+	J = Array{Int64}([]);
+	V = Array{Float64}([]);
+	D = zeros(Float64, ndof, 1);
 	for element in self.elements
 		dofn::Int32 = 1;
 		minode::Dict{Int32, Int32} = Dict{Int32, Int32}();
@@ -61,7 +64,14 @@ function solve(self::Model)
 			mi = minode[i];
 			for j = 1 : n
 				mj = minode[j];
-				K[mi, mj] += Ke[i, j];
+				if Ke[i, j] != 0
+					push!(I, mi);
+					push!(J, mj);
+					push!(V, Ke[i, j]);
+					if i == j
+						D[i] += Ke[i, j];
+					end
+				end
 			end
 		end
 	end
@@ -85,17 +95,21 @@ function solve(self::Model)
 			for d in instances(Dof)
 				if haskey(constraint.values, d)
 					v = constraint.values[d];
-					K[idof + dofn - 1, idof + dofn - 1] += 1e20;
-					R[idof + dofn - 1] = v * K[idof + dofn - 1, idof + dofn - 1];
+					push!(I, idof + dofn - 1);
+					push!(J, idof + dofn - 1);
+					push!(V, 1e20);
+					D[idof + dofn - 1] += 1e20;
+					R[idof + dofn - 1] = v * D[idof + dofn - 1];
 				end
 				dofn += 1;
 			end
 		end
 	end
-	K = sparse(K);
+	local K = sparse(I, J, V, ndof, ndof);
+
 	local result = K \ R;
-	display(result);
-	println();
+	#display(result);
+	#println();
 end
 
 function Model()
